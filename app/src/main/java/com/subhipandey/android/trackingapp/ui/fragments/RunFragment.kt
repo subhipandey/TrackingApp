@@ -7,6 +7,7 @@ import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.subhipandey.android.trackingapp.R
 import com.subhipandey.android.trackingapp.ui.viewmodels.MainViewModel
 import com.subhipandey.android.trackingapp.util.Constants.REQUEST_CODE_LOCATION_PERMISSION
