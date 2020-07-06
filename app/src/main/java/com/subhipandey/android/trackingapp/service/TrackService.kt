@@ -97,6 +97,10 @@ class TrackingService : LifecycleService() {
         isTracking.postValue(false)
     }
 
+    private fun pauseService(){
+        isTracking.postValue(false)
+    }
+
     @SuppressLint("MissingPermission")
     private fun updateLocationTracking(isTracking: Boolean) {
         if(isTracking) {
