@@ -22,6 +22,8 @@ class TrackingFragment : Fragment(R.layout.fragment_tracking) {
 
     private var map: GoogleMap? = null
 
+    private var curTimeInMillis = 0L
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         mapView.onCreate(savedInstanceState)
@@ -45,6 +47,12 @@ class TrackingFragment : Fragment(R.layout.fragment_tracking) {
             pathPoints = it
             addLatestPolyline()
             moveCameraToUser()
+        })
+
+        TrackingService.timeRunInMillis.observe(viewLifecycleOwner, Observer{
+            curTimeInMillis = it
+            val formattedTime = TrackingUtil.getFormattedStopWatchtime(curTimeInMillis.
+            tvTimer.text = formattedTime)
         })
     }
 
