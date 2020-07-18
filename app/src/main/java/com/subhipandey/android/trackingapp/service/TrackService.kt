@@ -29,7 +29,6 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.maps.model.LatLng
 import com.subhipandey.android.trackingapp.R
 import com.subhipandey.android.trackingapp.ui.MainActivity
-import com.subhipandey.android.trackingapp.ui.MainActivity_GeneratedInjector
 import com.subhipandey.android.trackingapp.util.Constants.ACTION_PAUSE_SERVICE
 import com.subhipandey.android.trackingapp.util.Constants.ACTION_SHOW_TRACKING_FRAGMENT
 import com.subhipandey.android.trackingapp.util.Constants.ACTION_START_OR_RESUME_SERVICE
@@ -37,7 +36,12 @@ import com.subhipandey.android.trackingapp.util.Constants.ACTION_STOP_SERVICE
 import com.subhipandey.android.trackingapp.util.Constants.NOTIFICATION_CHANNEL_ID
 import com.subhipandey.android.trackingapp.util.Constants.NOTIFICATION_CHANNEL_NAME
 import com.subhipandey.android.trackingapp.util.Constants.NOTIFICATION_ID
+import com.subhipandey.android.trackingapp.util.Constants.TIMER_UPDATE_INTERVAL
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -49,7 +53,6 @@ class TrackingService : LifecycleService() {
 
     var isFirstRun = true
     var serviceKilled = false
-
 
     @Inject
     lateinit var fusedLocationProviderClient: FusedLocationProviderClient
@@ -86,11 +89,11 @@ class TrackingService : LifecycleService() {
         })
     }
 
-    private fun killService(){
+    private fun killService() {
         serviceKilled = true
         isFirstRun = true
         pauseService()
-        postIntialValues()
+        postInitialValues()
         stopForeground(true)
         stopSelf()
     }
@@ -153,27 +156,26 @@ class TrackingService : LifecycleService() {
     }
 
     private fun updateNotificationTrackingState(isTracking: Boolean) {
-        val notificationActionText = if (isTracking) "Pause" else "Resume"
-        val pendingIntent = if(isTracking){
-            val pauseIntent = Intent(this, TrackingService::class.java).apply{
+        val notificationActionText = if(isTracking) "Pause" else "Resume"
+        val pendingIntent = if(isTracking) {
+            val pauseIntent = Intent(this, TrackingService::class.java).apply {
                 action = ACTION_PAUSE_SERVICE
             }
-            pendingIntent.getService(this,1,pauseIntent,FLAG_UPDATE_CURRENT)
-
+            PendingIntent.getService(this, 1, pauseIntent, FLAG_UPDATE_CURRENT)
         } else {
-            val resumeIntent = Intent(this, TrackingService::class.javaa).apply{
+            val resumeIntent = Intent(this, TrackingService::class.java).apply {
                 action = ACTION_START_OR_RESUME_SERVICE
             }
-            PendingIntent.getService(this,2,resumeIntent, FLAG_UPDATE_CURRENT)
-
+            PendingIntent.getService(this, 2, resumeIntent, FLAG_UPDATE_CURRENT)
         }
+
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        curNotificationBuilder.javaClass.getDeclaredField("mActions").apply{
+        curNotificationBuilder.javaClass.getDeclaredField("mActions").apply {
             isAccessible = true
-            set(curNotificationBuilder, ArrayList<androidx.core.app.NotificationCompat.Action>())
+            set(curNotificationBuilder, ArrayList<NotificationCompat.Action>())
         }
-        if(@serviceKilled) {
+        if(!serviceKilled) {
             curNotificationBuilder = baseNotificationBuilder
                 .addAction(R.drawable.ic_pause_black_24dp, notificationActionText, pendingIntent)
             notificationManager.notify(NOTIFICATION_ID, curNotificationBuilder.build())
@@ -183,7 +185,7 @@ class TrackingService : LifecycleService() {
     @SuppressLint("MissingPermission")
     private fun updateLocationTracking(isTracking: Boolean) {
         if (isTracking) {
-            if (TrackingUtility.hasLocationPermissions(this)) {
+            if (TrackingUtil.hasLocationPermissions(this)) {
                 val request = LocationRequest().apply {
                     interval = LOCATION_UPDATE_INTERVAL
                     fastestInterval = FASTEST_LOCATION_INTERVAL
@@ -240,18 +242,16 @@ class TrackingService : LifecycleService() {
             createNotificationChannel(notificationManager)
         }
 
-
-
         startForeground(NOTIFICATION_ID, baseNotificationBuilder.build())
-        timeRunInSeconds.observe(this, Observer{
-            if(!serviceKlled) {
-                val notification = curlNotificationBuilder
-                    .setContextText(TrackingUtility.getFormattedStopWatchTime(it * 1000L))
-                noticationManager.notify(NOTIFICATION_ID, notification.build())
+
+        timeRunInSeconds.observe(this, Observer {
+            if(!serviceKilled) {
+                val notification = curNotificationBuilder
+                    .setContentText(TrackingUtil.getFormattedStopWatchTime(it * 1000L))
+                notificationManager.notify(NOTIFICATION_ID, notification.build())
             }
         })
     }
-
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel(notificationManager: NotificationManager) {
